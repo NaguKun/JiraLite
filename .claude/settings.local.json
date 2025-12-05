@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m uvicorn:*)",
+      "Bash(timeout /t 3)",
+      "Bash(ping:*)",
+      "Bash(pip install:*)",
+      "Bash(curl:*)",
+      "Bash(python:*)",
+      "Bash(del temp_openapi.json)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

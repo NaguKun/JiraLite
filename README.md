@@ -4,11 +4,12 @@ AI-Powered Issue Tracking Web Application backend built with FastAPI and Supabas
 
 ## Features
 
-✅ **Authentication**
+✅ **Authentication** (Powered by Supabase Auth)
 - Email/Password signup and login
-- Google OAuth integration
+- Google OAuth integration (one-click setup)
 - Password reset via email
-- JWT token-based authentication
+- Automatic token refresh
+- Session management
 
 ✅ **Team Management**
 - Create and manage teams
@@ -52,7 +53,7 @@ AI-Powered Issue Tracking Web Application backend built with FastAPI and Supabas
 - **Framework**: FastAPI 0.109+
 - **Database**: Supabase (PostgreSQL)
 - **Authentication**: Supabase Auth + Google OAuth
-- **Email**: SendGrid
+- **Email**: Resend (simple & modern)
 - **AI**: OpenAI / Anthropic Claude
 - **Python**: 3.9+
 
@@ -61,10 +62,10 @@ AI-Powered Issue Tracking Web Application backend built with FastAPI and Supabas
 ### Prerequisites
 
 - Python 3.9 or higher
-- Supabase account
-- SendGrid account (for emails)
-- Google Cloud Console project (for OAuth)
-- OpenAI or Anthropic API key (for AI features)
+- Supabase account (handles auth + database)
+- Resend account (for email notifications - FREE tier available!)
+- OpenAI or Anthropic API key (for AI features, optional)
+- Google Cloud Console project (for Google OAuth, optional)
 
 ### Step 1: Clone and Setup
 
@@ -94,20 +95,30 @@ pip install -r requirements.txt
    - Anon public key
    - Service role key
 
-### Step 3: Configure Google OAuth
+### Step 3: Configure Google OAuth (in Supabase)
 
-1. Go to https://console.cloud.google.com
-2. Create a new project or select existing
-3. Enable Google+ API
-4. Create OAuth 2.0 credentials:
-   - Authorized redirect URIs: `http://localhost:8000/api/v1/auth/google/callback`
-5. Note your Client ID and Client Secret
+**Note**: Google OAuth is now handled by Supabase Auth - much simpler!
 
-### Step 4: Configure SendGrid
+1. Go to your Supabase Dashboard > Authentication > Providers
+2. Enable Google provider
+3. Get Google OAuth credentials:
+   - Go to https://console.cloud.google.com
+   - Create a new project or select existing
+   - Enable Google+ API
+   - Create OAuth 2.0 credentials
+   - Authorized redirect URI: `https://your-project-ref.supabase.co/auth/v1/callback`
+4. Enter Client ID and Client Secret in Supabase Dashboard
+5. Save
 
-1. Create account at https://sendgrid.com
-2. Create an API key with Mail Send permissions
-3. Verify a sender email address
+See `SUPABASE_AUTH_SETUP.md` for detailed instructions.
+
+### Step 4: Configure Resend (Email Service)
+
+**Why Resend?** It's much simpler than SendGrid, with a generous free tier!
+
+1. Create account at https://resend.com (free tier: 3,000 emails/month)
+2. Go to API Keys and create a new API key
+3. Add and verify your domain (or use their test domain for development)
 
 ### Step 5: Environment Configuration
 
@@ -121,24 +132,14 @@ cp .env.example .env
 Edit `.env` and fill in your credentials:
 
 ```env
-# Supabase
+# Supabase (No Google OAuth credentials needed - handled by Supabase!)
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your_anon_key
 SUPABASE_SERVICE_KEY=your_service_role_key
 
-# JWT
-JWT_SECRET=your_random_secret_key_here
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=1440
-
-# Google OAuth
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_REDIRECT_URI=http://localhost:8000/api/v1/auth/google/callback
-
-# Email (SendGrid)
-SENDGRID_API_KEY=your_sendgrid_api_key
-FROM_EMAIL=noreply@yourdomain.com
+# Email (Resend)
+RESEND_API_KEY=re_your_api_key_here
+FROM_EMAIL=onboarding@resend.dev  # Use your verified domain
 
 # AI (Choose one or both)
 OPENAI_API_KEY=your_openai_api_key

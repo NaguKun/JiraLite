@@ -125,39 +125,6 @@ async def change_password(
             detail=str(e)
         )
 
-@router.get("/google")
-async def google_auth():
-    """
-    Initiate Google OAuth flow.
-    FR-004: Google OAuth Login
-    """
-    try:
-        auth_url = await auth_service.get_google_auth_url()
-        return {"auth_url": auth_url}
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
-
-@router.get("/google/callback")
-async def google_callback(code: str):
-    """
-    Handle Google OAuth callback.
-    FR-004: Google OAuth Login
-    """
-    try:
-        result = await auth_service.handle_google_callback(code)
-        # Redirect to frontend with token
-        return RedirectResponse(
-            url=f"http://localhost:3000/auth/callback?token={result['access_token']}"
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-
 @router.get("/me")
 async def get_current_user_info(current_user: dict = Depends(get_current_user)):
     """

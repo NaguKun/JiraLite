@@ -1,8 +1,6 @@
 from src.database.supabase import get_supabase, get_supabase_admin
 from src.config import settings
 from src.services.email_service import EmailService
-from google.oauth2 import id_token
-from google.auth.transport import requests
 import secrets
 from datetime import datetime, timedelta
 from uuid import UUID
@@ -183,95 +181,3 @@ class AuthService:
         except Exception as e:
             raise Exception(str(e))
 
-    async def get_google_auth_url(self) -> str:
-        """
-        FR-004: Google OAuth Login - Get auth URL
-        """
-        from urllib.parse import urlencode
-
-        params = {
-            "client_id": settings.GOOGLE_CLIENT_ID,
-            "redirect_uri": settings.GOOGLE_REDIRECT_URI,
-            "response_type": "code",
-            "scope": "openid email profile",
-            "access_type": "offline",
-            "prompt": "consent"
-        }
-
-        return f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
-
-    async def handle_google_callback(self, code: str) -> dict:
-        """
-        FR-004: Google OAuth Login - Handle callback
-        """
-        try:
-            import httpx
-
-            # Exchange code for tokens
-            token_url = "https://oauth2.googleapis.com/token"
-            token_data = {
-                "code": code,
-                "client_id": settings.GOOGLE_CLIENT_ID,
-                "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                "redirect_uri": settings.GOOGLE_REDIRECT_URI,
-                "grant_type": "authorization_code"
-            }
-
-            async with httpx.AsyncClient() as client:
-                token_response = await client.post(token_url, data=token_data)
-                tokens = token_response.json()
-
-            # Verify ID token
-            id_info = id_token.verify_oauth2_token(
-                tokens["id_token"],
-                requests.Request(),
-                settings.GOOGLE_CLIENT_ID
-            )
-
-            email = id_info["email"]
-            name = id_info.get("name", email.split("@")[0])
-            google_id = id_info["sub"]
-
-            supabase = get_supabase()
-
-            # Check if user exists
-            user_response = supabase.table("user_profiles").select("*").eq(
-                "email", email
-            ).is_("deleted_at", "null").execute()
-
-            if user_response.data:
-                # Existing user - create session
-                user = user_response.data[0]
-                # Note: In production, implement proper token generation
-                # For now, create a session using Supabase
-                auth_response = supabase.auth.sign_in_with_oauth({
-                    "provider": "google",
-                    "options": {
-                        "redirect_to": settings.GOOGLE_REDIRECT_URI
-                    }
-                })
-            else:
-                # New user - sign up
-                auth_response = supabase.auth.sign_up({
-                    "email": email,
-                    "password": secrets.token_urlsafe(32),  # Random password for OAuth users
-                    "options": {
-                        "data": {
-                            "name": name,
-                            "provider": "google",
-                            "google_id": google_id
-                        }
-                    }
-                })
-
-            return {
-                "access_token": tokens["id_token"],
-                "token_type": "bearer",
-                "user": {
-                    "email": email,
-                    "name": name
-                }
-            }
-
-        except Exception as e:
-            raise Exception(f"Google OAuth failed: {str(e)}")

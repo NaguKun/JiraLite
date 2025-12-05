@@ -1,93 +1,75 @@
 "use client"
 
-import { useState } from "react"
 import { Bell, Trash2, CheckCircle2, Mail, MessageSquare, Users, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-
-interface Notification {
-  id: string
-  type: "assignment" | "comment" | "mention" | "status" | "invite"
-  title: string
-  description: string
-  timestamp: Date
-  read: boolean
-}
+import { useNotifications, useMarkAsRead, useMarkAllAsRead } from "@/hooks/use-api"
+import { useAuth } from "@/contexts/auth-context"
+import { toast } from "sonner"
+import { api } from "@/lib/api-client"
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: "1",
-      type: "assignment",
-      title: "Assigned to you",
-      description: 'You were assigned to "Fix authentication bug" by Alex Johnson',
-      timestamp: new Date(Date.now() - 30 * 60000),
-      read: false,
-    },
-    {
-      id: "2",
-      type: "comment",
-      title: "New comment",
-      description: 'Sarah commented on "Login page responsive design": Great progress on mobile design...',
-      timestamp: new Date(Date.now() - 2 * 3600000),
-      read: false,
-    },
-    {
-      id: "3",
-      type: "mention",
-      title: "You were mentioned",
-      description: 'Mike mentioned you in a comment: "@You - can you review this?',
-      timestamp: new Date(Date.now() - 5 * 3600000),
-      read: false,
-    },
-    {
-      id: "4",
-      type: "status",
-      title: "Status changed",
-      description: '"Database migration" was moved to In Review',
-      timestamp: new Date(Date.now() - 24 * 3600000),
-      read: true,
-    },
-    {
-      id: "5",
-      type: "invite",
-      title: "Team invitation",
-      description: 'You were invited to join the "Product" team by Sarah',
-      timestamp: new Date(Date.now() - 2 * 24 * 3600000),
-      read: true,
-    },
-  ])
+  const { session } = useAuth()
+  const { data: notifications, isLoading, error, refetch } = useNotifications()
+  const { mutate: markAsRead } = useMarkAsRead()
+  const { mutate: markAllAsRead, isLoading: isMarkingAllAsRead } = useMarkAllAsRead()
 
-  const markAsRead = (id: string) => {
-    setNotifications(notifications.map((n) => (n.id === id ? { ...n, read: true } : n)))
+  const handleMarkAsRead = async (notificationId: string) => {
+    try {
+      await markAsRead(notificationId)
+      refetch()
+    } catch (error) {
+      console.error("Failed to mark as read:", error)
+    }
   }
 
-  const markAllAsRead = () => {
-    setNotifications(notifications.map((n) => ({ ...n, read: true })))
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllAsRead(undefined)
+      toast.success("All notifications marked as read")
+      refetch()
+    } catch (error) {
+      console.error("Failed to mark all as read:", error)
+    }
   }
 
-  const deleteNotification = (id: string) => {
-    setNotifications(notifications.filter((n) => n.id !== id))
+  const handleDeleteNotification = async (notificationId: string) => {
+    if (!session?.access_token) return
+
+    try {
+      await api.notifications.deleteNotification(notificationId, session.access_token)
+      toast.success("Notification deleted")
+      refetch()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete notification"
+      toast.error(message)
+    }
   }
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case "assignment":
+      case "ISSUE_ASSIGNED":
         return <Users className="w-5 h-5 text-blue-500" />
       case "comment":
+      case "NEW_COMMENT":
         return <MessageSquare className="w-5 h-5 text-purple-500" />
       case "mention":
+      case "MENTION":
         return <AlertCircle className="w-5 h-5 text-orange-500" />
       case "status":
+      case "ISSUE_STATUS_CHANGED":
         return <CheckCircle2 className="w-5 h-5 text-green-500" />
       case "invite":
+      case "TEAM_INVITATION":
         return <Mail className="w-5 h-5 text-pink-500" />
       default:
         return <Bell className="w-5 h-5" />
     }
   }
 
-  const formatTime = (date: Date) => {
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString)
     const now = new Date()
     const diffMs = now.getTime() - date.getTime()
     const diffMins = Math.floor(diffMs / 60000)
@@ -101,7 +83,30 @@ export default function NotificationsPage() {
     return date.toLocaleDateString()
   }
 
-  const unreadCount = notifications.filter((n) => !n.read).length
+  const unreadCount = notifications?.filter((n) => !n.is_read).length || 0
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading notifications...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <p className="text-foreground font-semibold">Failed to load notifications</p>
+          <p className="text-muted-foreground text-sm mt-2">{error.message}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex-1 overflow-auto">
@@ -113,15 +118,20 @@ export default function NotificationsPage() {
             <p className="text-muted-foreground mt-1">You have {unreadCount} unread notification(s)</p>
           </div>
           {unreadCount > 0 && (
-            <Button variant="outline" onClick={markAllAsRead} className="border-border text-foreground bg-transparent">
-              Mark all as read
+            <Button
+              variant="outline"
+              onClick={handleMarkAllAsRead}
+              disabled={isMarkingAllAsRead}
+              className="border-border text-foreground bg-transparent"
+            >
+              {isMarkingAllAsRead ? "Marking..." : "Mark all as read"}
             </Button>
           )}
         </div>
 
         {/* Notifications List */}
         <div className="space-y-3">
-          {notifications.length === 0 ? (
+          {!notifications || notifications.length === 0 ? (
             <Card className="border-border">
               <CardContent className="py-12 text-center">
                 <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
@@ -133,7 +143,7 @@ export default function NotificationsPage() {
               <div
                 key={notification.id}
                 className={`p-4 rounded-lg border transition-colors ${
-                  notification.read
+                  notification.is_read
                     ? "bg-background border-border"
                     : "bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-900"
                 }`}
@@ -144,22 +154,33 @@ export default function NotificationsPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="font-semibold text-foreground">{notification.title}</p>
-                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{notification.description}</p>
-                        <p className="text-xs text-muted-foreground mt-2">{formatTime(notification.timestamp)}</p>
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                          {notification.message}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {formatTime(notification.created_at)}
+                        </p>
                       </div>
-                      {!notification.read && <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-2" />}
+                      {!notification.is_read && (
+                        <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-2" />
+                      )}
                     </div>
                   </div>
                   <div className="flex-shrink-0 flex gap-2">
-                    {!notification.read && (
-                      <Button size="sm" variant="ghost" onClick={() => markAsRead(notification.id)} className="text-xs">
+                    {!notification.is_read && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleMarkAsRead(notification.id)}
+                        className="text-xs"
+                      >
                         Read
                       </Button>
                     )}
                     <Button
                       size="icon"
                       variant="ghost"
-                      onClick={() => deleteNotification(notification.id)}
+                      onClick={() => handleDeleteNotification(notification.id)}
                       className="text-muted-foreground hover:text-foreground h-8 w-8"
                     >
                       <Trash2 className="w-4 h-4" />

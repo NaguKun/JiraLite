@@ -148,11 +148,11 @@ class ProjectResponse(BaseModel):
 # Label Schemas
 class LabelCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=30)
-    color: str = Field(..., regex=r'^#[0-9A-Fa-f]{6}$')
+    color: str = Field(..., pattern=r'^#[0-9A-Fa-f]{6}$')
 
 class LabelUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=30)
-    color: Optional[str] = Field(None, regex=r'^#[0-9A-Fa-f]{6}$')
+    color: Optional[str] = Field(None, pattern=r'^#[0-9A-Fa-f]{6}$')
 
 class LabelResponse(BaseModel):
     id: UUID
@@ -167,13 +167,13 @@ class LabelResponse(BaseModel):
 # Custom Status Schemas
 class CustomStatusCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=30)
-    color: Optional[str] = Field(None, regex=r'^#[0-9A-Fa-f]{6}$')
+    color: Optional[str] = Field(None, pattern=r'^#[0-9A-Fa-f]{6}$')
     position: int
     wip_limit: Optional[int] = Field(None, ge=1, le=50)
 
 class CustomStatusUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=30)
-    color: Optional[str] = Field(None, regex=r'^#[0-9A-Fa-f]{6}$')
+    color: Optional[str] = Field(None, pattern=r'^#[0-9A-Fa-f]{6}$')
     position: Optional[int] = None
     wip_limit: Optional[int] = Field(None, ge=1, le=50)
 

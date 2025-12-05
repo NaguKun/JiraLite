@@ -1,32 +1,26 @@
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+import resend
 from src.config import settings
-import aiosmtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 
 class EmailService:
     def __init__(self):
         self.from_email = settings.FROM_EMAIL
-        self.sendgrid_key = settings.SENDGRID_API_KEY
+        resend.api_key = settings.RESEND_API_KEY
 
     async def send_email(self, to_email: str, subject: str, html_content: str):
         """
-        Send email using SendGrid
+        Send email using Resend
         FR-003, FR-013: Actual email sending required
         """
         try:
-            message = Mail(
-                from_email=self.from_email,
-                to_emails=to_email,
-                subject=subject,
-                html_content=html_content
-            )
+            params = {
+                "from": self.from_email,
+                "to": [to_email],
+                "subject": subject,
+                "html": html_content,
+            }
 
-            sg = SendGridAPIClient(self.sendgrid_key)
-            response = sg.send(message)
-
-            return response.status_code == 202
+            email = resend.Emails.send(params)
+            return True
 
         except Exception as e:
             print(f"Email sending failed: {str(e)}")
@@ -39,14 +33,28 @@ class EmailService:
         """
         subject = "Reset Your Password - Jira Lite"
         html_content = f"""
+        <!DOCTYPE html>
         <html>
-            <body>
-                <h2>Password Reset Request</h2>
-                <p>You requested to reset your password for Jira Lite.</p>
-                <p>Click the link below to reset your password. This link will expire in 1 hour.</p>
-                <p><a href="{reset_link}">Reset Password</a></p>
-                <p>If you didn't request this, please ignore this email.</p>
-                <p>Best regards,<br>Jira Lite Team</p>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #2563eb;">Password Reset Request</h2>
+                    <p>You requested to reset your password for Jira Lite.</p>
+                    <p>Click the button below to reset your password. This link will expire in 1 hour.</p>
+                    <div style="margin: 30px 0;">
+                        <a href="{reset_link}"
+                           style="background-color: #2563eb; color: white; padding: 12px 24px;
+                                  text-decoration: none; border-radius: 5px; display: inline-block;">
+                            Reset Password
+                        </a>
+                    </div>
+                    <p style="color: #666; font-size: 14px;">
+                        If you didn't request this, please ignore this email.
+                    </p>
+                    <p style="margin-top: 30px;">
+                        Best regards,<br>
+                        <strong>Jira Lite Team</strong>
+                    </p>
+                </div>
             </body>
         </html>
         """
@@ -66,14 +74,30 @@ class EmailService:
         """
         subject = f"You're invited to join {team_name} on Jira Lite"
         html_content = f"""
+        <!DOCTYPE html>
         <html>
-            <body>
-                <h2>Team Invitation</h2>
-                <p>{inviter_name} has invited you to join the team "{team_name}" on Jira Lite.</p>
-                <p>Click the link below to accept the invitation. This invitation will expire in 7 days.</p>
-                <p><a href="{invite_link}">Accept Invitation</a></p>
-                <p>If you don't have an account yet, you'll be able to sign up after clicking the link.</p>
-                <p>Best regards,<br>Jira Lite Team</p>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #2563eb;">Team Invitation</h2>
+                    <p><strong>{inviter_name}</strong> has invited you to join the team
+                       <strong>"{team_name}"</strong> on Jira Lite.</p>
+                    <p>Click the button below to accept the invitation.
+                       This invitation will expire in 7 days.</p>
+                    <div style="margin: 30px 0;">
+                        <a href="{invite_link}"
+                           style="background-color: #2563eb; color: white; padding: 12px 24px;
+                                  text-decoration: none; border-radius: 5px; display: inline-block;">
+                            Accept Invitation
+                        </a>
+                    </div>
+                    <p style="color: #666; font-size: 14px;">
+                        If you don't have an account yet, you'll be able to sign up after clicking the link.
+                    </p>
+                    <p style="margin-top: 30px;">
+                        Best regards,<br>
+                        <strong>Jira Lite Team</strong>
+                    </p>
+                </div>
             </body>
         </html>
         """
@@ -93,14 +117,28 @@ class EmailService:
         """
         subject = f"You've been assigned to: {issue_title}"
         html_content = f"""
+        <!DOCTYPE html>
         <html>
-            <body>
-                <h2>New Issue Assignment</h2>
-                <p>Hi {assignee_name},</p>
-                <p>You have been assigned to a new issue:</p>
-                <p><strong>{issue_title}</strong></p>
-                <p><a href="{issue_link}">View Issue</a></p>
-                <p>Best regards,<br>Jira Lite Team</p>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #2563eb;">New Issue Assignment</h2>
+                    <p>Hi <strong>{assignee_name}</strong>,</p>
+                    <p>You have been assigned to a new issue:</p>
+                    <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <strong>{issue_title}</strong>
+                    </div>
+                    <div style="margin: 30px 0;">
+                        <a href="{issue_link}"
+                           style="background-color: #2563eb; color: white; padding: 12px 24px;
+                                  text-decoration: none; border-radius: 5px; display: inline-block;">
+                            View Issue
+                        </a>
+                    </div>
+                    <p style="margin-top: 30px;">
+                        Best regards,<br>
+                        <strong>Jira Lite Team</strong>
+                    </p>
+                </div>
             </body>
         </html>
         """
@@ -121,14 +159,30 @@ class EmailService:
         """
         subject = f"Reminder: {issue_title} is due soon"
         html_content = f"""
+        <!DOCTYPE html>
         <html>
-            <body>
-                <h2>Due Date Reminder</h2>
-                <p>Hi {assignee_name},</p>
-                <p>This is a reminder that the following issue is due on {due_date}:</p>
-                <p><strong>{issue_title}</strong></p>
-                <p><a href="{issue_link}">View Issue</a></p>
-                <p>Best regards,<br>Jira Lite Team</p>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #f59e0b;">⏰ Due Date Reminder</h2>
+                    <p>Hi <strong>{assignee_name}</strong>,</p>
+                    <p>This is a reminder that the following issue is due on
+                       <strong style="color: #dc2626;">{due_date}</strong>:</p>
+                    <div style="background-color: #fef3c7; padding: 15px; border-radius: 5px;
+                                border-left: 4px solid #f59e0b; margin: 20px 0;">
+                        <strong>{issue_title}</strong>
+                    </div>
+                    <div style="margin: 30px 0;">
+                        <a href="{issue_link}"
+                           style="background-color: #2563eb; color: white; padding: 12px 24px;
+                                  text-decoration: none; border-radius: 5px; display: inline-block;">
+                            View Issue
+                        </a>
+                    </div>
+                    <p style="margin-top: 30px;">
+                        Best regards,<br>
+                        <strong>Jira Lite Team</strong>
+                    </p>
+                </div>
             </body>
         </html>
         """
@@ -150,14 +204,30 @@ class EmailService:
         """
         subject = f"New comment on: {issue_title}"
         html_content = f"""
+        <!DOCTYPE html>
         <html>
-            <body>
-                <h2>New Comment</h2>
-                <p>Hi {user_name},</p>
-                <p>{commenter_name} commented on "{issue_title}":</p>
-                <blockquote>{comment_content}</blockquote>
-                <p><a href="{issue_link}">View Issue</a></p>
-                <p>Best regards,<br>Jira Lite Team</p>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #2563eb;">💬 New Comment</h2>
+                    <p>Hi <strong>{user_name}</strong>,</p>
+                    <p><strong>{commenter_name}</strong> commented on
+                       <strong>"{issue_title}"</strong>:</p>
+                    <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px;
+                                border-left: 4px solid #2563eb; margin: 20px 0;">
+                        <p style="margin: 0; font-style: italic;">{comment_content}</p>
+                    </div>
+                    <div style="margin: 30px 0;">
+                        <a href="{issue_link}"
+                           style="background-color: #2563eb; color: white; padding: 12px 24px;
+                                  text-decoration: none; border-radius: 5px; display: inline-block;">
+                            View Issue
+                        </a>
+                    </div>
+                    <p style="margin-top: 30px;">
+                        Best regards,<br>
+                        <strong>Jira Lite Team</strong>
+                    </p>
+                </div>
             </body>
         </html>
         """

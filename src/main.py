@@ -11,12 +11,12 @@ from src.database.supabase import init_supabase
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    print("🚀 Starting up Jira Lite API...")
+    print(">> Starting up Jira Lite API...")
     init_supabase()
-    print("✅ Supabase initialized")
+    print(">> Supabase initialized")
     yield
     # Shutdown
-    print("👋 Shutting down...")
+    print(">> Shutting down...")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

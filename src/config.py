@@ -11,18 +11,8 @@ class Settings(BaseSettings):
     SUPABASE_KEY: str
     SUPABASE_SERVICE_KEY: str
 
-    # JWT
-    JWT_SECRET: str
-    JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
-
-    # Google OAuth
-    GOOGLE_CLIENT_ID: str
-    GOOGLE_CLIENT_SECRET: str
-    GOOGLE_REDIRECT_URI: str
-
-    # Email
-    SENDGRID_API_KEY: str
+    # Email (Resend)
+    RESEND_API_KEY: str
     FROM_EMAIL: str
 
     # AI
